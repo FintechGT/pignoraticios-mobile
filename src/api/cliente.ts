@@ -1,8 +1,10 @@
-// src/api/client.ts
+// src/api/cliente.ts
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+console.log("🌐 API Base URL:", API_BASE_URL);
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -26,6 +28,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Log para debugging
+    console.error("❌ API Error:", {
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: error?.message,
+    });
+
     if (error?.response?.status === 401) {
       // Token inválido/expirado
       await SecureStore.deleteItemAsync("access_token");

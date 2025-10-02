@@ -1,5 +1,5 @@
 // src/api/auth.ts
-import { api } from "./client";
+import { api } from "./cliente";  // ✅ CORRECTO
 import * as SecureStore from "expo-secure-store";
 
 export type User = {

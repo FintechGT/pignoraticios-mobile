@@ -12,7 +12,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.jeancarlo_dev.pignoraticiosmobile",
+      "package": "com.jeancarlo.pignoraticios",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -49,7 +49,10 @@
     },
     "extra": {
       "googleClientId": "${EXPO_PUBLIC_GOOGLE_CLIENT_ID}",
-      "googleAndroidClientId": "${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}"
+      "googleAndroidClientId": "${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}",
+      "eas": {
+        "projectId": "7c15571b-9675-4940-937c-a23917ee047b"
+      }
     }
   }
 }

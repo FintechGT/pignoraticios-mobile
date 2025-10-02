@@ -18,15 +18,19 @@ export type TokenResponse = {
 /**
  * Login con Google (igual que en web)
  */
-export async function loginWithGoogle(id_token: string): Promise<TokenResponse> {
-  const response = await api.post<TokenResponse>("/auth/google", { id_token });
-  const { access_token } = response.data;
-
-  // Guardar token (como saveToken() en web)
-  await SecureStore.setItemAsync("access_token", access_token);
-
-  return response.data;
+// src/api/auth.ts
+export async function loginWithGoogle(idToken: string) {
+  const url = `${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/google`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id_token: idToken }), // el backend espera "id_token"
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || `Error ${res.status}`);
+  try { return JSON.parse(text); } catch { return text as any; }
 }
+
 
 /**
  * Obtener datos del usuario autenticado (igual que getMe() en web)

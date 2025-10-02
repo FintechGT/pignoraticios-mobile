@@ -1,18 +1,15 @@
 // app/login.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
-import { makeRedirectUri } from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
-// import { loginWithGoogle } from "@/src/api/auth";
 
 WebBrowser.maybeCompleteAuthSession();
 
-// En Expo Go no necesitamos scheme; lo usamos en build nativo.
-// Lo dejamos definido por si lo usas luego.
-const SCHEME = "pignoraticiosmobile";
+// IMPORTANTÍSIMO: redirect EXACTO del proxy de Expo (debe estar en Google Cloud)
+const EXPO_REDIRECT_URI = "https://auth.expo.io/@jeancarlo_dev/pignoraticios-mobile";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,23 +18,15 @@ export default function LoginScreen() {
   const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID!;
   const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 
-  // 👇 FORZAR PROXY EN EXPO GO
-  const useProxy = true;
-
-  // 👇 IMPORTANTE: sin scheme cuando useProxy=true para obtener https://auth.expo.io/...
-  const redirectUri = useMemo(
-    () => makeRedirectUri({ useProxy: true }),
-    []
-  );
-
-  console.log("🔁 redirectUri (debe empezar con https://auth.expo.io):", redirectUri);
+  console.log("➡️ Usando redirectUri:", EXPO_REDIRECT_URI);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: WEB_CLIENT_ID,
-    androidClientId: ANDROID_CLIENT_ID,
+    clientId: WEB_CLIENT_ID,               // Expo Go usa SIEMPRE el Web Client ID
+    androidClientId: ANDROID_CLIENT_ID,    // Para build nativo
     responseType: "id_token",
     scopes: ["profile", "email"],
-    redirectUri, // 👈 aquí va el redirect del proxy
+    // 👇 forzamos el redirect del proxy (NADA de exp://)
+    redirectUri: EXPO_REDIRECT_URI,
   });
 
   useEffect(() => {
@@ -57,20 +46,18 @@ export default function LoginScreen() {
         (response as any)?.authentication?.idToken ??
         (response as any)?.params?.id_token;
 
-      console.log("➡️ idToken length:", idToken?.length, "prefix:", idToken?.slice?.(0, 14));
+      console.log("✅ idToken len:", idToken?.length, "pref:", idToken?.slice?.(0, 14));
       if (!idToken) return Alert.alert("Error", "No se recibió el token de Google");
 
       try {
         setLoading(true);
-
-        // === Llama a tu backend ===
-        const res = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/google`, {
+        const r = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/google`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_token: idToken }), // el backend espera "id_token"
+          body: JSON.stringify({ id_token: idToken }), // el backend espera id_token
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.detail || `Error ${res.status}`);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.detail || `Error ${r.status}`);
 
         const accessToken = data?.access_token || data?.accessToken;
         if (!accessToken) throw new Error("El backend no devolvió access_token");
@@ -88,7 +75,8 @@ export default function LoginScreen() {
 
   const onGooglePress = async () => {
     try {
-      await promptAsync({ useProxy: true }); // 👈 forzar proxy también aquí
+      // 👇 usa el proxy; como ya pasamos redirectUri del proxy, no habrá exp://
+      await promptAsync({ useProxy: true, redirectUri: EXPO_REDIRECT_URI });
     } catch (e: any) {
       console.error("❌ promptAsync error:", e);
       Alert.alert("Error", "No se pudo abrir Google Sign-In.");
